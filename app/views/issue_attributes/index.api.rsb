@@ -1,0 +1,137 @@
+api.issue_attributes do
+  #
+  # 標準のフィールド
+  #
+  api.array :standard_attributes do
+    api.standard_attribute :name => "status_id" do
+      api.label l(:field_status)
+      api.format "list"
+      api.array :possible_values do
+        @allowed_statuses.each do |status|
+          api.value status.name, :id => status.id
+        end
+      end
+      api.is_required true
+      api.default_value @issue.status_id if @issue.status_id.present?
+    end if @issue.safe_attribute? "status_id"
+
+    api.standard_attribute :name => "priority_id" do
+      api.label l(:field_priority)
+      api.format "list"
+      api.array :possible_values do
+        @priorities.each do |pri|
+          api.value pri.name, :id => pri.id
+        end
+      end
+      api.is_required true
+      api.default_value @issue.priority_id if @issue.priority_id.present?
+      api.disabled true unless @issue.leaf?
+    end if @issue.safe_attribute? "priority_id"
+
+    api.standard_attribute :name => "assigned_to_id" do
+      api.label l(:field_assigned_to)
+      api.format "user"
+      api.array :possible_values do
+        @issue.assignable_users.each do |user|
+          api.value user.name, :id => user.id
+        end
+      end
+      api.default_value @issue.assigned_to if @issue.assigned_to.present?
+    end if @issue.safe_attribute? "assigned_to_id"
+
+    api.standard_attribute :name => "category_id" do
+      api.label l(:field_category)
+      api.format "list"
+      api.array :possible_values do
+        @issue.project.issue_categories.each do |cat|
+          api.vaue cat.name, :id => cat.id
+        end
+      end
+      api.default_value @issue.category_id if @issue.category_id.present?
+    end if @issue.safe_attribute? "category_id" && @issue.project.issue_categories.any?
+
+    api.standard_attribute :name => "fixed_version_id" do
+      api.label l(:field_fixed_version)
+      api.format "version"
+      api.array :possible_values do 
+        @issue.assignable_versions.each do |ver|
+          api.value ver.name, :id => ver.id
+        end
+      end
+      api.default_value @issue.fixed_version_id if @issue.fixed_version_id.present?
+    end if @issue.safe_attribute? "fixed_version_id" && @issue.assignable_versions.any?
+
+    api.standard_attribute :name => "parent_issue_id" do
+      api.label l(:field_parent_issue)
+      api.format "int"
+      api.default_value @issue.parent_issue_id if @issue.parent_issue_id.present?
+    end if @issue.safe_attribute? "parent_issue_id"
+    
+    api.standard_attribute :name => "start_date" do
+      api.label l(:field_start_date)
+      api.format "date"
+      api.default_value @issue.start_date if @issue.start_date.present?
+      api.disabled true unless @issue.leaf?
+    end if @issue.safe_attribute? "start_date"
+
+    api.standard_attribute :name => "due_date" do
+      api.label l(:field_due_date)
+      api.format "date"
+      api.default_value @issue.due_date if @issue.due_date.present?
+      api.disabled true unless @issue.leaf?
+    end if @issue.safe_attribute? "due_date"
+
+    api.standard_attribute :name => "estimated_hours" do
+      api.label l(:field_estimated_hours)
+      api.format "hours"
+      api.unit_label l(:field_hours)
+      api.default_value @issue.estimated_hours if @issue.estimated_hours.present?
+      api.disabled true unless @issue.leaf?
+    end if @issue.safe_attribute? "estimated_hours"
+
+    api.standard_attribute :name => "done_ratio" do
+      api.label l(:field_done_ratio)
+      api.format "list"
+      api.array :possible_values do
+        (0..10).each do |r|
+          api.value "#{r*10} %", :id => r*10
+        end
+      end
+      api.default_value @issue.done_ratio if @issue.done_ratio.present?
+      api.disabled true unless @issue.leaf?
+    end if @issue.safe_attribute? "done_ratio" && Issue.use_field_for_done_ratio?
+  end
+  
+  #
+  # カスタムフィールド
+  #
+  api.array :custom_attributes do
+    @issue.custom_field_values.each do |custom_value|
+      custom_field = custom_value.custom_field
+      api.custom_attribute :id => custom_field.id do
+        api.name custom_field.name
+        api.format custom_field.field_format
+
+        field_format = Redmine::CustomFieldFormat.find_by_name(custom_field.field_format)
+        api.format_label l(field_format.label)
+        case field_format.try(:edit_as)
+        when "list"
+          api.array :possible_values do
+            custom_field.possible_values_options(custom_value.customized).each do |option|
+              value, id = option_text_and_value(option)
+              api.value value, :id => id
+            end
+          end
+        end
+
+        api.default_value custom_field.default_value if custom_field.default_value.present?
+        api.regexp custom_field.regexp if custom_field.regexp.present?
+        api.min_length custom_field.min_length if custom_field.min_length > 0
+        api.max_length custom_field.max_length if custom_field.max_length > 0
+        api.is_required custom_field.is_required? if custom_field.is_required?
+        api.multiple custom_field.multiple? if custom_field.multiple?
+      end
+    end if @issue.safe_attribute? 'custom_field_values'
+  end
+end
+
