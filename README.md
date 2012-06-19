@@ -22,7 +22,7 @@ Redmine1.4 と Redmine 2.0 をサポートしています。動作の確認は�
 ### Redmine 2.0
 ```sh
 % cd REDMINE_ROOT/plugins
-% git clone git://githib.com/opengroove/redmine_fulmo_helper.git 
+% git clone git://github.com/opengroove/redmine_fulmo_helper.git
 ```
 
 
