@@ -6,7 +6,11 @@ class ProjectTrackersController < ApplicationController
   accept_api_auth :index
 
   def index
-    @trackers = @project.trackers
+    respond_to do |format|
+      format.api {
+        @trackers = @project.trackers
+      }
+    end
   end
 
   private
